@@ -1,0 +1,36 @@
+{
+  "name": "javascript-amazon-project",
+  "version": "1.0.0",
+  "description": "A backend for Amazon in MERN",
+  "keywords": [
+    "MERN",
+    "Backend",
+    "Javascript"
+  ],
+  "homepage": "https://github.com/ashzenest/amazon-backend#readme",
+  "bugs": {
+    "url": "https://github.com/ashzenest/amazon-backend/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ashzenest/amazon-backend.git"
+  },
+  "license": "ISC",
+  "author": "Abdullah khan",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "bcrypt": "^6.0.0",
+    "cloudinary": "^2.9.0",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.6",
+    "dotenv": "^17.2.4",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.1.6",
+    "multer": "^2.0.2"
+  }
+}
