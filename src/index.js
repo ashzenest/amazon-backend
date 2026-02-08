@@ -1,10 +1,14 @@
+import dotenv from "dotenv"
 import { connectDatabase } from "./src/db.js";
+import { app } from "./app.js";
 
-const port = process.env.PORT || 5000
+dotenv.config({
+    path:'./.env'
+})
 
 connectDatabase()
     .then(() => {
-        app.listen(port, () => {
+        app.listen(process.env.PORT || 5000, () => {
             console.log("App is working")
         })
     })
