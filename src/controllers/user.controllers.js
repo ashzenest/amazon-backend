@@ -209,11 +209,27 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, user, "Avatar changed successfully"))
 })
 
+const updateFullname = asyncHandler(async (req, res) => {
+    const {newFullname} = req.body
+
+    if(!newFullname || !newFullname.trim()){
+        throw new ApiError(400, "fullname is required")
+    }
+    const user = await User.findByIdAndUpdate(req.user._id,
+        {
+            $set:{fullname: newFullname}
+        },{new: true, runValidators: true}
+    ).select("-refreshToken")
+
+    return res.status(200).json(new ApiResponse(200, user, "fullname changed successfully"))
+})
+
 export {
     registerUser,
     loginUser,
     logoutUser,
     refreshAccessToken,
     changeCurrentPassword,
-    updateUserAvatar
+    updateUserAvatar,
+    updateFullname
 }
