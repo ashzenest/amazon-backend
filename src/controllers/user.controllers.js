@@ -226,6 +226,62 @@ const updateFullname = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, user, "fullname changed successfully"))
 })
 
+const usernameAvailableOrNot = asyncHandler(async (req, res) => {
+    const {username} = req.query
+     if (!username) {
+        throw new ApiError(400, "Username is required")
+    }
+    const available = await User.findOne({username})
+    if(available){
+        return res.status(200).json(new ApiResponse(200, {available: false}, "Username is already taken"))
+    } else {
+        return res.status(200).json(new ApiResponse(200, {available: true}, "Username is available"))
+    }
+})
+
+const changeUsername = asyncHandler(async (req, res) => {
+    const {username, password} = req.body
+    const newUsername = username?.trim()
+
+    if(!newUsername || !password?.trim()){
+        throw new ApiError(400, "Both username and password are required")
+    }
+    if(newUsername === req.user.username){
+        throw new ApiError(400, "New username must be different from old username")
+    }
+
+    const existingUser = await User.findOne({username: newUsername})
+    if(existingUser){
+        throw new ApiError(400, "Username already taken")
+    }
+
+    const user = await User.findById(req.user._id).select("+password")
+    if(!user){
+        throw new ApiError(500, "Could not find the user")
+    }
+
+    const isPasswordCorrect = await user.isPasswordCorrect(password)
+    if(!isPasswordCorrect){
+        throw new ApiError(400, "Password is incorrect")
+    }
+
+    user.username = newUsername
+
+    try{
+        await user.save()
+    }catch(error){
+        if(error.name === "ValidationError"){
+            throw new ApiError(400, error.message)
+        }
+        throw new ApiError(500, "Could not change the username")
+    }
+
+    const updatedUser = await User.findById(req.user._id).select("-refreshToken") 
+
+    return res.status(200).json(new ApiResponse(200, updatedUser, "Username changed successfully"))
+
+})
+
 export {
     registerUser,
     loginUser,
@@ -233,5 +289,7 @@ export {
     refreshAccessToken,
     changeCurrentPassword,
     updateUserAvatar,
-    updateFullname
+    updateFullname,
+    usernameAvailableOrNot,
+    changeUsername
 }
