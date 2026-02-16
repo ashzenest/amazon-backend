@@ -87,4 +87,27 @@ userSchema.methods.generateRefreshToken = function(){
     })
 }
 
+userSchema.methods.generateEmailChangeToken = function(newEmail){
+    return jwt.sign({
+        _id: this._id,
+        newEmail: newEmail,
+        purpose: "email-change"
+    },
+    process.env.EMAIL_CHANGE_TOKEN_SECRET,
+    {
+        expiresIn: process.env.EMAIL_CHANGE_TOKEN_EXPIRY
+    })
+}
+
+userSchema.methods.generatePasswordResetToken = function(){
+    return jwt.sign({
+        _id: this._id,
+        purpose: "password-reset"
+    },
+    process.env.PASSWORD_RESET_TOKEN_SECRET,
+    {
+        expiresIn: process.env.PASSWORD_RESET_TOKEN_EXPIRY
+    })
+}
+
 export const User = mongoose.model("User", userSchema)

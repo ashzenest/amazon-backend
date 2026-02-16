@@ -5,7 +5,7 @@ import { deleteFromCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js
 import { ApiResponse } from "../utils/ApiResponse.js"
 import jwt from "jsonwebtoken"
 import { extractPublicId } from "../utils/extractPublicId.js"
-import { sendRegistrationEmail } from "../services/email.service.js"
+import { sendChangeEmailRequest, sendRegistrationEmail } from "../services/email.service.js"
 
 //ONLY ACCEPT STRING AS INPUT
 
@@ -282,6 +282,69 @@ const changeUsername = asyncHandler(async (req, res) => {
 
 })
 
+const changeEmailRequest = asyncHandler(async (req, res) => {
+    const {email} = req.body
+
+    const newEmail = email?.trim()
+    if(!newEmail){
+        throw new ApiError(400, "New email is required")
+    }
+
+    const emailRegex = /^\S+@\S+\.\S+$/
+    if(!emailRegex.test(newEmail)){
+        throw new ApiError(400, "Invalid email format")
+    }
+
+    if(newEmail === req.user.email){
+        throw new ApiError(400, "New email must be different from current email")
+    }
+
+    const emailInUse = await User.findOne({email: newEmail})
+    if(emailInUse){
+        throw new ApiError(400, "Email is already in use")
+    }
+
+    const user = await User.findById(req.user._id).select("-refreshToken")
+
+    const emailChangeToken = user.generateEmailChangeToken(newEmail)
+    const magicLink = `${process.env.BASE_URL}/api/users/verify-email-change?token=${emailChangeToken}`
+
+    sendChangeEmailRequest(newEmail, req.user.fullname, magicLink)
+
+    return res.status(200).json(new ApiResponse(200, {}, "Verification link sent to your Email"))
+})
+
+const verifychangeEmailRequest = asyncHandler(async (req, res) => {
+    const {token} = req.query
+    if(!token){
+        throw new ApiError(400, "Token is required")
+    }
+    let decodedToken
+    try {
+        decodedToken = jwt.verify(token, process.env.EMAIL_CHANGE_TOKEN_SECRET)
+    } catch (error) {
+        throw new ApiError(400, "Invalid or expired token")
+    }
+    if(decodedToken.purpose !== 'email-change'){
+        throw new ApiError(400, "Invalid token type")
+    }
+
+    const emailTaken = await User.findOne({email: decodedToken.newEmail})
+    if(emailTaken){
+        throw new ApiError(400, "Email is no longer available")
+    }
+    
+    const user = await User.findByIdAndUpdate(decodedToken._id,
+        {
+            $set: {email: decodedToken.newEmail}
+        }, {new: true})
+    
+    if(!user){
+        throw new ApiError(404, "User not found")
+    }
+    return res.status(200).json(new ApiResponse(200, user, "Email changed successfully"))
+})
+
 export {
     registerUser,
     loginUser,
@@ -291,5 +354,7 @@ export {
     updateUserAvatar,
     updateFullname,
     usernameAvailableOrNot,
-    changeUsername
+    changeUsername,
+    changeEmailRequest,
+    verifychangeEmailRequest
 }

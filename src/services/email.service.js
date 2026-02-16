@@ -62,9 +62,37 @@ const sendRegistrationEmail = async(userEmail, fullname) => {
     const html = `<p>Hello ${fullname}</p><p>Thank you for registering to ${process.env.APP_NAME}</p><p>Best regards,<br> The ${process.env.APP_NAME} Team</p>`
     const sent = await sendEmailWithRetry(userEmail, subject, text, html)
     if(sent){
-        console.log(`Registration Email sent successfully`)
+      console.log(`Registration Email sent successfully`)
     } else {
-        console.error(`Could not sent Registration Email`)
+      console.error(`Could not send Registration Email`)
     }
 }
-export {sendRegistrationEmail}
+
+const sendChangeEmailRequest = async(userEmail, fullname, magicLink) => {
+  const subject = "Confirm your Email change"
+  const text = `Hello ${fullname}\n\n To confirm your email change, please click the link below:\n\n ${magicLink}\n\n This link expires in 15 minutes.\n\nIf you didn't request this change, please ignore this email.`
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <p>Hello ${fullname},</p>
+      <p>To confirm your email change, please click the button below:</p>
+      <br>
+      <a href="${magicLink}" 
+         style="display: inline-block; background-color: #4CAF50; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+        Verify Email Change
+      </a>
+      <br><br>
+      <p style="color: #666;">This link expires in 15 minutes.</p>
+      <p style="color: #666;">If you didn't request this change, please ignore this email.</p>
+    </div>`
+  const sent = await sendEmailWithRetry(userEmail, subject, text, html)
+  if(sent){
+      console.log("Change-email request sent successfully")
+    } else {
+      console.error("Failed to send change-email request")
+    }
+  return sent
+}
+export {
+  sendRegistrationEmail,
+  sendChangeEmailRequest
+}
