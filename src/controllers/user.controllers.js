@@ -9,6 +9,8 @@ import { sendChangeEmailRequest, sendRegistrationEmail } from "../services/email
 import { Wishlist } from "../models/wishlist.model.js"
 import {Product} from "../models/product.model.js"
 import mongoose from "mongoose"
+import { Order } from "../models/order.model.js"
+import { options } from "../utils/options.js"
 
 //ONLY ACCEPT STRING AS INPUT
 
@@ -73,7 +75,7 @@ const registerUser = asyncHandler(async (req, res) => {
 const loginUser = asyncHandler(async (req, res) => {
     const {username, email, password} = req.body
 
-    if (!username || !email) {
+    if (!username && !email) {
         throw new ApiError(400, "Username or email is required")
     }
 
@@ -96,10 +98,6 @@ const loginUser = asyncHandler(async (req, res) => {
 
     const {accessToken, refreshToken} = await generateAccessAndRefreshToken(user._id)
 
-    const options = {
-        httpOnly: true,
-        secure: true
-    }
     return res.status(200).cookie("accessToken", accessToken, options).cookie("refreshToken", refreshToken, options).json(new ApiResponse(200, {}, "Login successfull"))
 })
 
@@ -110,17 +108,12 @@ const logoutUser = asyncHandler(async (req, res) => {
                 refreshToken: null
             }
         })
-    
-    const options = {
-        httpOnly: true,
-        secure: true
-    }
 
     return res.status(200).clearCookie("accessToken", options).clearCookie("refreshToken", options).json(new ApiResponse(200, {}, "User logged out successfully"))  
 })
 
 const refreshAccessToken = asyncHandler(async (req, res) => {
-    const token = req.cookies?.refreshToken
+    const token = req.cookies?.refreshToken || req.header("Authorization")?.replace("Bearer ", "")
     if(!token){
         throw new ApiError(401, "Invalid refresh token")
     }
@@ -139,10 +132,6 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
         throw new ApiError(401, "Refresh token has been revoked or is invalid")
     }
     const {accessToken, refreshToken} = await generateAccessAndRefreshToken(decodedToken._id)
-    const options = {
-        httpOnly: true,
-        secure: true
-    }
 
     return res.status(200).cookie("accessToken", accessToken, options).cookie("refreshToken", refreshToken, options).json(new ApiResponse(200, {}, "Refresh access token successfull"))
 })
@@ -176,11 +165,6 @@ const changeCurrentPassword = asyncHandler(async(req, res) => {
             throw new ApiError(400, error.message)
         }
         throw new ApiError(500, "Could not change password")
-    }
-
-    const options = {
-        httpOnly: true,
-        secure: true
     }
     
     return res.status(200).clearCookie("accessToken", options).clearCookie("refreshToken", options).json(new ApiResponse(200, {}, "Password changed successfully. Please login again."))
@@ -349,18 +333,7 @@ const verifychangeEmailRequest = asyncHandler(async (req, res) => {
 })
 
 const getCurrentUser = asyncHandler(async (req, res) => {
-    const user = await User.findById(req.user._id).select("-refreshToken")
-        .populate({
-            path: "wishlist",
-            populate: {
-                path: "products"
-            }
-        }).populate({
-            path: "orders",
-            populate: {
-                path: "products.product"
-            }
-        })
+    const user = await User.findById(req.user._id).select("-refreshToken -orders -wishlist -products")
     if(!user){
         throw new ApiError(404, "User not found")
     }
@@ -430,7 +403,19 @@ const removeFromWishlist = asyncHandler(async (req, res) => {
         },
         {new: true}
     )
-    return res.status(200).json(new ApiResponse("200", wishlist, "Removed from wishlist"))
+    return res.status(200).json(new ApiResponse(200, wishlist, "Removed from wishlist"))
+})
+
+const getOrderById = asyncHandler(async (req, res) => {
+    const {orderId} = req.params
+    if(!mongoose.Types.ObjectId.isValid(orderId)){
+        throw new ApiError(400, "Invalid Order Id format")
+    }
+    const order =  await Order.findOne({_id: orderId, user: req.user._id}).populate("products.product")
+    if(!order){
+        throw new ApiError(404, "Order not found")
+    }
+    return res.status(200).json(new ApiResponse(200, order, "Order fetched successfully"))
 })
 
 export {
@@ -449,5 +434,6 @@ export {
     getWishlist,
     getOrders,
     addToWishlist,
-    removeFromWishlist
+    removeFromWishlist,
+    getOrderById
 }
