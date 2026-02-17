@@ -6,6 +6,9 @@ import { ApiResponse } from "../utils/ApiResponse.js"
 import jwt from "jsonwebtoken"
 import { extractPublicId } from "../utils/extractPublicId.js"
 import { sendChangeEmailRequest, sendRegistrationEmail } from "../services/email.service.js"
+import { Wishlist } from "../models/wishlist.model.js"
+import {Product} from "../models/product.model.js"
+import mongoose from "mongoose"
 
 //ONLY ACCEPT STRING AS INPUT
 
@@ -392,6 +395,44 @@ const getOrders = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, user, "Orders fetched successfully"))
 })
 
+const addToWishlist = asyncHandler(async (req, res) => {
+    const {productId} = req.query
+    if(!mongoose.Types.ObjectId.isValid(productId)){
+        throw new ApiError(400, "Invalid Product ID format")
+    }
+    const product = await Product.findById(productId)
+    if(!product){
+        throw new ApiError(404, "Product not found")
+    }
+    const wishlist = await Wishlist.findOneAndUpdate({user: req.user._id},
+        {
+            $addToSet: {products: productId}
+        },
+        {upsert: true, new: true, setDefaultsOnInsert: true}
+    )
+    return res.status(200).json(new ApiResponse(200, wishlist, "Added to wishlist"))
+})
+
+const removeFromWishlist = asyncHandler(async (req, res) => {
+    const {productId} = req.query
+    if(!mongoose.Types.ObjectId.isValid(productId)){
+        throw new ApiError(400, "Invalid Product ID format")
+    }
+
+    const product = await Product.findById(productId)
+    if(!product){
+        throw new ApiError(404, "Product not found")
+    }
+
+    const wishlist = await Wishlist.findOneAndUpdate({user: req.user._id},
+        {
+            $pull: {products: productId}
+        },
+        {new: true}
+    )
+    return res.status(200).json(new ApiResponse("200", wishlist, "Removed from wishlist"))
+})
+
 export {
     registerUser,
     loginUser,
@@ -406,5 +447,7 @@ export {
     verifychangeEmailRequest,
     getCurrentUser,
     getWishlist,
-    getOrders
+    getOrders,
+    addToWishlist,
+    removeFromWishlist
 }
