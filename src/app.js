@@ -3,6 +3,7 @@ import express from "express"
 import cors from "cors"
 import userRouter from "./routes/user.routes.js"
 import reviewRouter from "./routes/review.routes.js"
+import categoryRouter from "./routes/category.routes.js"
 import helmet from "helmet"
 import mongoSanitize from "express-mongo-sanitize"
 
@@ -24,6 +25,7 @@ app.use(express.static("public"))
 
 app.use("/api/users", userRouter)
 app.use("/api/reviews", reviewRouter)
+app.use("/api/categories", categoryRouter)
 
 // app.use((err, req, res, next) => {
 //   const statusCode = err.statusCode || 500
