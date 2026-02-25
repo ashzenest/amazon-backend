@@ -23,4 +23,16 @@ const verifyJWT = asyncHandler(async (req, _, next) => {
     }
 })
 
-export {verifyJWT}
+const authorizeRoles = (...roles) => {
+    return asyncHandler(async(req, res, next) => {
+        if(!roles.includes(req.user.role)){
+            throw new ApiError(403, "Forbidden")
+        }
+        next()
+    })
+}
+
+export {
+    verifyJWT,
+    authorizeRoles
+}

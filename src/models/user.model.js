@@ -49,6 +49,24 @@ const userSchema = mongoose.Schema({
         enum: ["customer", "seller", "admin"],
         default: "customer"
     },
+    status: {
+        type: String,
+        enum: ["active", "suspended", "banned"],
+        default: "active"
+    },
+    statusMetaData: {
+        reason: String,
+        changedAt: Date,
+        changedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User"
+        },
+        suspensionExpiresAt: Date
+    },
+    strikeCount: {
+        type: Number,
+        default: 0
+    },
     wishlist: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Wishlist"
@@ -74,7 +92,8 @@ userSchema.methods.generateAccessToken = function(){
     return jwt.sign({
         _id: this._id,
         username: this.username,
-        email: this.email
+        email: this.email,
+        role: this.role
     },
     process.env.ACCESS_TOKEN_SECRET,
     {
@@ -84,7 +103,8 @@ userSchema.methods.generateAccessToken = function(){
 
 userSchema.methods.generateRefreshToken = function(){
     return jwt.sign({
-        _id: this._id
+        _id: this._id,
+        role: this.role
     },
     process.env.REFRESH_TOKEN_SECRET,
     {

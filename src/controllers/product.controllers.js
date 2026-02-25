@@ -148,7 +148,7 @@ const updateProduct = asyncHandler(async (req, res) => {
     if(category){
         const existingCategory = await Category.findOne({name: category})
         if(existingCategory){
-            updateFields.category = category
+            updateFields.category = existingCategory._id
         } else {
             throw new ApiError(400, "Invalid Category")
         }
