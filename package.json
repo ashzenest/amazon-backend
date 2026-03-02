@@ -23,6 +23,7 @@
     "dev": "node src/index.js"
   },
   "dependencies": {
+    "@valkey/valkey-glide": "^2.2.7",
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.9.0",
     "cookie-parser": "^1.4.7",
@@ -35,7 +36,7 @@
     "mongoose": "^9.1.6",
     "multer": "^2.0.2",
     "nodemailer": "^8.0.1",
-    "razorpay": "^2.9.6",
-    "redis": "^5.11.0"
+    "rate-limiter-flexible": "^9.1.1",
+    "razorpay": "^2.9.6"
   }
 }
