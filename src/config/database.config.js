@@ -12,7 +12,7 @@ const connectDatabase = async() => {
             await new Promise(resolve => setTimeout(resolve, 2000 * (i + 1)))
         }
     }
-    console.log("Maximum tries failed")
+    console.log("Database connection failed after maximum retries")
     process.exit(1)
 }
 

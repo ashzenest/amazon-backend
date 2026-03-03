@@ -12,6 +12,8 @@ import mongoose from "mongoose"
 import { Order } from "../models/order.model.js"
 import { options } from "../utils/options.js"
 import { Review } from "../models/review.model.js"
+import { blacklistToken } from "../services/valkey.service.js"
+import { calculateRemainingTTL } from "../utils/calculateRemainingTTL.js"
 
 //ONLY ACCEPT STRING AS INPUT
 
@@ -109,6 +111,9 @@ const logoutUser = asyncHandler(async (req, res) => {
                 refreshToken: null
             }
         })
+    
+    const ttl = calculateRemainingTTL(req.decodedToken.exp)
+    await blacklistToken(req.user._id, req.token, ttl)
 
     return res.status(200).clearCookie("accessToken", options).clearCookie("refreshToken", options).json(new ApiResponse(200, {}, "User logged out successfully"))  
 })

@@ -1,12 +1,15 @@
 import { Router } from "express";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { getDashboardStats, getMyOrders, getMyProducts, updateStock } from "../controllers/seller.controllers.js";
+import { blacklistCheck } from "../middlewares/blacklist.middleware.js";
 
 const router = Router()
 
-router.route("/my-products").get(verifyJWT, getMyProducts)
-router.route("/update-stock/:productId").patch(verifyJWT, updateStock)
-router.route("/my-orders").get(verifyJWT, getMyOrders)
-router.route("/get-stats").get(verifyJWT, getDashboardStats)
+router.use(verifyJWT, blacklistCheck)
+
+router.route("/my-products").get(getMyProducts)
+router.route("/update-stock/:productId").patch(updateStock)
+router.route("/my-orders").get(getMyOrders)
+router.route("/get-stats").get(getDashboardStats)
 
 export default router

@@ -16,7 +16,12 @@ const verifyJWT = asyncHandler(async (req, _, next) => {
         if(!user){
             throw new ApiError(401, "Invalid access token")
         }
+        if(user.status !== "active"){
+            throw new ApiError(401, `User is ${user.status}`)
+        }
         req.user = user
+        req.token = token
+        req.decodedToken = decodedToken
         next()
     } catch (error) {
         throw new ApiError(401, error?.message || "Invalid access token")
@@ -24,7 +29,7 @@ const verifyJWT = asyncHandler(async (req, _, next) => {
 })
 
 const authorizeRoles = (...roles) => {
-    return asyncHandler(async(req, res, next) => {
+    return asyncHandler(async(req, _, next) => {
         if(!roles.includes(req.user.role)){
             throw new ApiError(403, "Forbidden")
         }

@@ -202,21 +202,20 @@ const updateUserStatus = asyncHandler(async(req, res) => {
     if(action === "banned"){
         user = await User.findByIdAndUpdate(userId,
             {
-                $set: {status: action, "statusMetaData.reason": reason, "statusMetaData.changedAt": new Date(), "statusMetaData.changedBy": req.user._id},
-                $unset: {refreshToken: ""}
+                $set: {status: action, "statusMetaData.reason": reason, "statusMetaData.changedAt": new Date(), "statusMetaData.changedBy": req.user._id, refreshToken: null}
             },{runValidators: true, new: true})
 
     }else if(action === "suspended"){
         const suspensionExpiresAt = addDays(new Date(), duration)
         user = await User.findByIdAndUpdate(userId,
             {
-                $set: {status: action, "statusMetaData.reason": reason, "statusMetaData.changedAt": new Date(), "statusMetaData.changedBy": req.user._id, "statusMetaData.suspensionExpiresAt": suspensionExpiresAt},
-                $unset: {refreshToken: ""}
+                $set: {status: action, "statusMetaData.reason": reason, "statusMetaData.changedAt": new Date(), "statusMetaData.changedBy": req.user._id, "statusMetaData.suspensionExpiresAt": suspensionExpiresAt, refreshToken: null}
             }, {runValidators: true, new: true})
     }else if(action === "strike"){
         user = await User.findById(userId).select("-refreshToken")
         user.strikeCount += 1
         if(user.strikeCount >= 3){
+            user.refreshToken = null
             user.status = "banned"
         }
         user.statusMetaData.changedAt = new Date()

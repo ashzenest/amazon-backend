@@ -1,13 +1,12 @@
 import { deleteProduct, deleteReview, deleteUser, getAllUsers, getOrderById, getUserById, updateProduct, updateUserRole, updateUserStatus } from "../controllers/admin.controllers.js";
 import { authorizeRoles, verifyJWT } from "../middlewares/auth.middleware.js";
 import { Router } from "express";
-
+import { blacklistCheck } from "../middlewares/blacklist.middleware.js";
 
 const router = Router()
 
-router.use(verifyJWT)
+router.use(verifyJWT, blacklistCheck)
 router.use(authorizeRoles("admin"))
-
 
 router.route("/users").get(getAllUsers)
 router.route("/users/:userId").get(getUserById)
