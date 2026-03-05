@@ -135,7 +135,7 @@ const updateProduct = asyncHandler(async (req, res) => {
         if(price < 0) throw new ApiError(400, "Price cannot be negative")
         updateFields.price = price
     }
-    if(description?.trim){
+    if(description?.trim()){
         updateFields.description = description
     }
     if(status){

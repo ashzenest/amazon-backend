@@ -118,7 +118,7 @@ const updateProduct = asyncHandler(async (req, res) => {
     if(newName){
         updateFields.name = newName
     }
-    if(description?.trim){
+    if(description?.trim()){
         updateFields.description = description
     }
     if(status){
