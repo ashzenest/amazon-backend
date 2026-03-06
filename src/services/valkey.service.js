@@ -56,11 +56,52 @@ const invalidateSellerProductsCache = async(sellerId) => {
     }
 }
 
+const acquireValkeyLock = async(lockKey, lockValue, remainingTTL) => {
+    const valkeyClient = getValkeyClient()
+    const lockAcquired = await valkeyClient.set(lockKey, lockValue,
+    {
+        expiry: {type: TimeUnit.Seconds, count: remainingTTL},
+        conditionalSet: "onlyIfDoesNotExist"
+    })
+    return lockAcquired !== null
+}
+
+const releaseValkeyLock = async(lockKey, lockValue) => {
+    const valkeyClient = getValkeyClient()
+    const value = await valkeyClient.get(lockKey)
+    if(lockValue === value){
+        await valkeyClient.del(lockKey)
+    }
+}
+
+const getWithLock = async(cacheKeys, ttl, dbQuery) => {
+    const cached = await cacheGet(cacheKeys)
+    if(cached){
+        return cached
+    }
+
+    const lockValue = crypto.randomUUID()
+    const lockAcquired = await acquireValkeyLock(cacheKeys, lockValue, 10)
+    if(!lockAcquired){
+        await new Promise((resolve) => setTimeout(resolve, 50))
+        const cached = await cacheGet(cacheKeys)
+        if(cached){
+            return cached
+        }
+        const result = await dbQuery()
+        return result
+    }
+
+    const result = await dbQuery()
+    cacheSet(cacheKeys, result, ttl)
+    await releaseValkeyLock(cacheKeys, lockValue)
+    return result
+}
+
 export {
     blacklistToken,
     isTokenBlacklisted,
-    cacheSet,
-    cacheGet,
     cacheDel,
-    invalidateSellerProductsCache
+    invalidateSellerProductsCache,
+    getWithLock
 }

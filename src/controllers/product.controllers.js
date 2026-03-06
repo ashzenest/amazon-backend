@@ -7,7 +7,7 @@ import {User} from "../models/user.model.js"
 import { deleteFromCloudinary, uploadOnCloudinary } from "../services/cloudinary.service.js"
 import { extractPublicId } from "../utils/extractPublicId.js"
 import mongoose from "mongoose";
-import { cacheDel, cacheGet, cacheSet, invalidateSellerProductsCache } from "../services/valkey.service.js";
+import { cacheDel, invalidateSellerProductsCache, getWithLock } from "../services/valkey.service.js";
 import { CacheKeys } from "../utils/cacheKeys.js";
 
 const createProduct = asyncHandler(async (req, res) => {
@@ -116,17 +116,15 @@ const getProductById = asyncHandler(async (req, res) => {
     if(!mongoose.Types.ObjectId.isValid(productId)){
         throw new ApiError(400, "Invalid Product Id format")
     }
-    const cached = await cacheGet(CacheKeys.product(productId))
-    if(cached){
-        return res.status(200).json(new ApiResponse(200, cached, "Product fetched successfully"))
-    }
-    const product = await Product.findById(productId)
-        .populate("seller", "username fullname avatar")
-        .populate("category", "name description")
+    const product = await getWithLock(CacheKeys.product(productId), 60*60, () => {
+        return Product.findById(productId)
+                .populate("seller", "username fullname avatar")
+                .populate("category", "name description")
+    })
+   
     if(!product){
         throw new ApiError(404, "Product not found")
     }
-    cacheSet(CacheKeys.product(productId), product, 60*60)
     return res.status(200).json(new ApiResponse(200, product, "Product fetched successfully"))
 })
 
@@ -223,27 +221,42 @@ const getProductsBySeller = asyncHandler(async (req, res) => {
     if(!mongoose.Types.ObjectId.isValid(sellerId)){
         throw new ApiError(400, "Invalid Seller Id format")
     }
-    const cached = await cacheGet(CacheKeys.productsBySellers(sellerId, page))
-    if(cached){
-        const {totalProducts, products} = cached
-        return res.status(200)
-        .json(new ApiResponse(200,
-            {
-                products,
-                pagination: {
-                    currentPage: page,
-                    totalPages: Math.ceil(totalProducts / limit),
-                    totalProducts
-                }
-        }, "Products fetched successfully"))
-    }
 
-    const totalProducts = await Product.countDocuments({seller: sellerId})
-    const products = await Product.find({seller: sellerId})
-        .skip(skip)
-        .limit(limit)
+    const data = await getWithLock(CacheKeys.productsBySellers(sellerId, page), 60*60*5, async () => {
+        const totalProducts = await Product.countDocuments({seller: sellerId})
+        const products = await Product.find({seller: sellerId}).skip(skip).limit(limit)
+        return {totalProducts, products}
+    })
 
-    cacheSet(CacheKeys.productsBySellers(sellerId, page), {totalProducts, products}, 60*60*5)
+    const {totalProducts, products} = data
+
+    // const product = await getWithLock(CacheKeys.productsBySellers(sellerId), 60*60*5, () => {
+    //     return Product.findById(sellerId)
+    //             .populate("seller", "username fullname avatar")
+    //             .populate("category", "name description")
+    // })
+    
+    // const cached = await cacheGet(CacheKeys.productsBySellers(sellerId, page))
+    // if(cached){
+    //     const {totalProducts, products} = cached
+    //     return res.status(200)
+    //     .json(new ApiResponse(200,
+    //         {
+    //             products,
+    //             pagination: {
+    //                 currentPage: page,
+    //                 totalPages: Math.ceil(totalProducts / limit),
+    //                 totalProducts
+    //             }
+    //     }, "Products fetched successfully"))
+    // }
+
+    // const totalProducts = await Product.countDocuments({seller: sellerId})
+    // const products = await Product.find({seller: sellerId})
+    //     .skip(skip)
+    //     .limit(limit)
+
+    // cacheSet(CacheKeys.productsBySellers(sellerId, page), {totalProducts, products}, 60*60*5)
 
     return res.status(200)
         .json(new ApiResponse(200,

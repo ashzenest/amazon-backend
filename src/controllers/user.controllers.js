@@ -12,7 +12,7 @@ import mongoose from "mongoose"
 import { Order } from "../models/order.model.js"
 import { options } from "../utils/options.js"
 import { Review } from "../models/review.model.js"
-import { blacklistToken, cacheSet, cacheGet, cacheDel } from "../services/valkey.service.js"
+import { blacklistToken, cacheDel, getWithLock } from "../services/valkey.service.js"
 import { calculateRemainingTTL } from "../utils/calculateRemainingTTL.js"
 import { loginUserRateLimiter, forgotPasswordUserRateLimiter, emailChangeUserRateLimiter } from "../middlewares/rateLimiter.middleware.js"
 import { CacheKeys } from "../utils/cacheKeys.js";
@@ -352,15 +352,12 @@ const verifychangeEmailRequest = asyncHandler(async (req, res) => {
 })
 
 const getCurrentUser = asyncHandler(async (req, res) => {
-    const cached = await cacheGet(CacheKeys.userProfile(req.user._id))
-    if(cached){
-        return res.status(200).json(new ApiResponse(200, cached, "User fetched successfully"))
-    }
-    const user = await User.findById(req.user._id).select("-refreshToken -orders -wishlist -products")
+    const user = await getWithLock(CacheKeys.userProfile(req.user._id), 60*60, () => {
+        return User.findById(req.user._id).select("-refreshToken -orders -wishlist -products")
+        })
     if(!user){
         throw new ApiError(404, "User not found")
     }
-    cacheSet(CacheKeys.userProfile(req.user._id), user, 60*60)
     return res.status(200).json(new ApiResponse(200, user, "User fetched successfully"))
 })
 
