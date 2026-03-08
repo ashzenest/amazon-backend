@@ -184,7 +184,7 @@ const getMyOrders = asyncHandler(async (req, res) => {
         const sortOrder = req.query.order === 'desc' ? -1 : 1
         sort[sortField] = sortOrder
     } else{
-        sort = {createdAt: -1}
+        sort.createdAt = -1
     }
     
     const totalOrders = await Order.countDocuments(filter)

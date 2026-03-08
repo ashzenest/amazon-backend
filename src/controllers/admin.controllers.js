@@ -5,6 +5,7 @@ import { Category } from "../models/category.model.js";
 import { Wishlist } from "../models/wishlist.model.js"
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import {extractPublicId} from "../utils/extractPublicId.js"
 import mongoose from "mongoose";
 import { Product } from "../models/product.model.js";
 import { Review } from "../models/review.model.js"
@@ -53,13 +54,13 @@ const getAllUsers = asyncHandler(async(req, res) => {
         ]
     }
 
-    let sort = {}
+    const sort = {}
     if(req.query.sortBy){
         const sortField = req.query.sortBy
         const sortOrder = req.query.order === "desc" ? -1 : 1
         sort[sortField] = sortOrder
     }else{
-        sort = {createdAt: -1}
+        sort.createdAt = -1
     }
     const totalUsers = await User.countDocuments(filter)
     const users = await User.find(filter).sort(sort).skip(skip).limit(limit).select("-refreshToken")

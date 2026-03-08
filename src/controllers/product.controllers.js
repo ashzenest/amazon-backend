@@ -299,13 +299,13 @@ const getAllProducts = asyncHandler(async( req, res) => {
             { description: { $regex: req.query.search, $options: 'i' } }
         ]
     }
-    let sort = {}
+    const sort = {}
     if(req.query.sortBy){
         const sortField = req.query.sortBy
         const sortOrder = req.query.order === 'desc' ? -1 : 1
         sort[sortField] = sortOrder
     } else {
-        sort = { createdAt: -1 }
+        sort.createdAt = -1
     }
 
     const totalProducts = await Product.countDocuments(filter)
