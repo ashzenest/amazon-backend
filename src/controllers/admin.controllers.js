@@ -11,6 +11,7 @@ import { Review } from "../models/review.model.js"
 import { addDays } from "../utils/calculateDate.js";
 import { cacheDel, invalidateSellerProductsCache } from "../services/valkey.service.js";
 import { CacheKeys } from "../utils/cacheKeys.js";
+import { addDeleteFromCloudinary } from "../queues/producers/cloudinary.producer.js";
 
 const getAllUsers = asyncHandler(async(req, res) => {
     const page = parseInt(req.query.page) || 1
@@ -101,7 +102,7 @@ const deleteProduct = asyncHandler(async (req, res) => {
     }
     for(const imageUrl of product.image){
         const publicId = extractPublicId(imageUrl)
-        await deleteFromCloudinary(publicId)
+        addDeleteFromCloudinary(publicId)
     }
 
     await cacheDel(CacheKeys.product(productId))
@@ -288,13 +289,13 @@ const deleteUser = asyncHandler(async(req, res) => {
 
     if(avatarUrl && !avatarUrl.includes("defaultuser")){
         const publicId = extractPublicId(avatarUrl)
-        await deleteFromCloudinary(publicId)
+        addDeleteFromCloudinary(publicId)
     }
     for(const product of products){
         if(product.image?.length > 0){
             for(const link of product.image){
                 const publicId = extractPublicId(link)
-                await deleteFromCloudinary(publicId)
+                addDeleteFromCloudinary(publicId)
             }
         }
         await cacheDel(CacheKeys.product(product._id))

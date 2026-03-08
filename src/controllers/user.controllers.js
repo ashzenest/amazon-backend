@@ -1,7 +1,7 @@
 import {asyncHandler} from "../utils/asyncHandler.js"
 import {ApiError} from "../utils/ApiError.js"
 import {User} from "../models/user.model.js"
-import { deleteFromCloudinary, uploadOnCloudinary } from "../services/cloudinary.service.js"
+import { uploadOnCloudinary } from "../services/cloudinary.service.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import jwt from "jsonwebtoken"
 import { extractPublicId } from "../utils/extractPublicId.js"
@@ -16,6 +16,7 @@ import { calculateRemainingTTL } from "../utils/calculateRemainingTTL.js"
 import { loginUserRateLimiter, forgotPasswordUserRateLimiter, emailChangeUserRateLimiter } from "../middlewares/rateLimiter.middleware.js"
 import { CacheKeys } from "../utils/cacheKeys.js";
 import { addChangeEmailRequestToQueue, addForgetPasswordEmailToQueue, addSendRegistrationEmailToQueue } from "../queues/producers/email.producer.js"
+import { addDeleteFromCloudinary } from "../queues/producers/cloudinary.producer.js"
 
 //ONLY ACCEPT STRING AS INPUT
 
@@ -200,7 +201,7 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
     if(req.user.avatar && !req.user.avatar.includes("/defaultuser/")){
         const publicId = extractPublicId(req.user.avatar)
         if(publicId){
-            await deleteFromCloudinary(publicId)
+            addDeleteFromCloudinary(publicId)
         }
     }
 

@@ -4,11 +4,12 @@ import { ApiResponse } from "../utils/ApiResponse.js"
 import { Category } from "../models/category.model.js";
 import { Product } from "../models/product.model.js";
 import {User} from "../models/user.model.js"
-import { deleteFromCloudinary, uploadOnCloudinary } from "../services/cloudinary.service.js"
+import { uploadOnCloudinary } from "../services/cloudinary.service.js"
 import { extractPublicId } from "../utils/extractPublicId.js"
 import mongoose from "mongoose";
 import { cacheDel, invalidateSellerProductsCache, getWithLock } from "../services/valkey.service.js";
 import { CacheKeys } from "../utils/cacheKeys.js";
+import { addDeleteFromCloudinary } from "../queues/producers/cloudinary.producer.js";
 
 const createProduct = asyncHandler(async (req, res) => {
     const {name, price, description, stock, brand, category} = req.body
@@ -44,7 +45,7 @@ const createProduct = asyncHandler(async (req, res) => {
         if(!cloudinaryLink){
             for(const link of cloudinaryLinks){
                 const publicId = extractPublicId(link)
-                await deleteFromCloudinary(publicId)
+                addDeleteFromCloudinary(publicId)
             }
             throw new ApiError(500, "Could not upload images on cloudinary")
         }
@@ -78,7 +79,7 @@ const createProduct = asyncHandler(async (req, res) => {
 
         for(const link of cloudinaryLinks){
             const publicId = extractPublicId(link)
-            await deleteFromCloudinary(publicId)
+            addDeleteFromCloudinary(publicId)
         }
 
         throw new ApiError(500, "Transaction failed: " + error.message)
@@ -102,7 +103,7 @@ const deleteProduct = asyncHandler(async (req, res) => {
     }
     for(const imageUrl of product.image){
         const publicId = extractPublicId(imageUrl)
-        await deleteFromCloudinary(publicId)
+        addDeleteFromCloudinary(publicId)
     }
 
     await cacheDel(CacheKeys.product(productId))
@@ -172,7 +173,7 @@ const updateProduct = asyncHandler(async (req, res) => {
             if(!cloudinaryLink){
                 for(const link of cloudinaryLinks){
                     const publicId = extractPublicId(link)
-                    await deleteFromCloudinary(publicId)
+                    addDeleteFromCloudinary(publicId)
                 }
                 throw new ApiError(500, "Could not upload images to cloudinary")
             }
@@ -196,13 +197,13 @@ const updateProduct = asyncHandler(async (req, res) => {
         if(imagePaths && imagePaths.length){
             for(const image of product.image){
                 const publicId = extractPublicId(image)
-                await deleteFromCloudinary(publicId)
+                addDeleteFromCloudinary(publicId)
             }
         }
     } catch (error) {
         for(const link of cloudinaryLinks){
             const publicId = extractPublicId(link)
-            await deleteFromCloudinary(publicId)
+            addDeleteFromCloudinary(publicId)
         }
         throw new ApiError(500, "Transaction failed: " + error.message)
     }
